@@ -15,26 +15,19 @@ export default function PembayaranPage() {
   const [method, setMethod] = useState<"Cash" | "Online" | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 1. Monitor data pendaftar secara Real-time
   useEffect(() => {
     if (!paymentCodeUrl) return;
-
     const q = query(collection(db, "pendaftar"), where("paymentCode", "==", paymentCodeUrl));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        const data = snapshot.docs[0].data();
-        // Simpan id dokumen asli untuk mempermudah update
-        setUserData({ docId: snapshot.docs[0].id, ...data });
+        setUserData({ docId: snapshot.docs[0].id, ...snapshot.docs[0].data() });
       } else {
-        // Jika data lunas/tidak ada
         setUserData("LUNAS");
       }
     });
-
     return () => unsubscribe();
   }, [paymentCodeUrl]);
 
-  // 2. Load Midtrans Snap Script
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
@@ -49,54 +42,48 @@ export default function PembayaranPage() {
     setLoading(true);
 
     try {
-      // Update metode pembayaran ke Firestore
       const userRef = doc(db, "pendaftar", userData.docId);
-      await updateDoc(userRef, { 
-        paymentMethod: method 
-      });
+      await updateDoc(userRef, { paymentMethod: method });
 
       if (method === "Online") {
-        // Panggil API Tokenizer
         const res = await fetch("/api/tokenizer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            docId: userData.docId, // Kirim ID dokumen asli
-            paymentCode: userData.paymentCode,
+            docId: userData.docId,
             nama: userData.namaLengkap,
             email: userData.email,
-            total: 100000, // Sesuaikan nominal
+            total: 100000,
           }),
         });
 
         const data = await res.json();
+        if (data.error) throw new Error(data.error);
 
         // @ts-ignore
         window.snap.pay(data.token, {
           onSuccess: () => alert("Pembayaran Berhasil!"),
-          onPending: () => alert("Selesaikan pembayaran Anda."),
+          onPending: () => alert("Menunggu Pembayaran..."),
           onError: () => alert("Pembayaran Gagal!"),
         });
       } else {
         alert("Silakan datang ke sekolah untuk pembayaran tunai.");
       }
-    } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan sistem.");
+    } catch (err: any) {
+      alert("Kesalahan: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Tampilan Jika Sudah Lunas / Menjadi Siswa
   if (userData === "LUNAS" || userData?.status === "Siswa") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white p-6">
         <div className="text-center border-[3px] border-black p-10 rounded-[32px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           <div className="w-20 h-20 bg-green-400 rounded-full border-2 border-black flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
-          <h2 className="text-3xl font-black italic uppercase">PEMBAYARAN LUNAS</h2>
+          <h2 className="text-3xl font-black italic uppercase text-slate-900">PEMBAYARAN LUNAS</h2>
           <p className="font-bold text-slate-500 mt-2">Selamat! Anda sekarang resmi menjadi Siswa.</p>
-          <button onClick={() => router.push('/')} className="mt-6 bg-black text-white px-8 py-3 rounded-xl font-bold uppercase">Kembali ke Home</button>
+          <button onClick={() => router.push('/')} className="mt-6 bg-black text-white px-8 py-3 rounded-xl font-bold uppercase hover:bg-slate-800 transition-colors">Kembali ke Home</button>
         </div>
       </div>
     );
@@ -107,8 +94,8 @@ export default function PembayaranPage() {
       <main className="max-w-2xl mx-auto px-6 mt-16">
         <div className="bg-white border-[3px] border-black rounded-[32px] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-8 md:p-12">
           <header className="text-center mb-10">
-            <h2 className="text-3xl font-black uppercase text-blue-600 italic tracking-tight">Metode Pembayaran</h2>
-            <p className="text-slate-500 font-bold mt-2 italic text-sm">KODE PENDAFTARAN: {paymentCodeUrl}</p>
+            <h2 className="text-3xl font-black uppercase text-blue-600 italic">Pilih Metode</h2>
+            <p className="text-slate-500 font-bold mt-2 italic text-sm">ID: {userData?.docId?.substring(0, 8)}...</p>
           </header>
 
           <div className="grid grid-cols-1 gap-4">
@@ -134,12 +121,12 @@ export default function PembayaranPage() {
               <CreditCard className="mr-4 text-blue-600" />
               <div className="text-left">
                 <h4 className="font-extrabold text-lg italic uppercase">Online Payment</h4>
-                <p className="text-xs text-slate-500 font-bold">QRIS, Transfer Bank, E-Wallet</p>
+                <p className="text-xs text-slate-500 font-bold">QRIS, VA, E-Wallet</p>
               </div>
             </button>
           </div>
 
-          <div className="mt-10 pt-8 border-t-2 border-slate-100">
+          <div className="mt-10 pt-8 border-t-2">
             <button
               disabled={!method || loading}
               onClick={handleProsesPembayaran}
@@ -147,9 +134,8 @@ export default function PembayaranPage() {
             >
               {loading ? "Memproses..." : "Konfirmasi & Bayar"}
             </button>
-            <div className="flex items-center justify-center mt-6 text-slate-400 gap-2">
-              <ShieldCheck size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Secure Payment by Midtrans</span>
+            <div className="flex items-center justify-center mt-6 text-slate-400 gap-2 font-bold text-[10px] uppercase">
+              <ShieldCheck size={14} /> Secure by Midtrans
             </div>
           </div>
         </div>

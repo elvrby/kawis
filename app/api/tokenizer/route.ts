@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { docId, paymentCode, nama, email, total } = await request.json();
+    const { docId, nama, email, total } = await request.json();
 
     const snap = new Midtrans.Snap({
       isProduction: false,
@@ -11,10 +11,13 @@ export async function POST(request: Request) {
       clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY as string,
     });
 
+    // Format: INV-20karakterDocId-13karakterTimestamp (Total ~38 karakter)
+    // Ini aman dari limit 50 karakter Midtrans
+    const orderId = `INV-${docId}-${Date.now()}`;
+
     const parameter = {
       transaction_details: {
-        // Format: INV-IDDOKUMEN-KODEPAY-WAKTU
-        order_id: `INV-${docId}-${paymentCode}-${Date.now()}`,
+        order_id: orderId,
         gross_amount: total,
       },
       customer_details: {
