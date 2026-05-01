@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore"; // Tambahkan initializeFirestore
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -11,7 +11,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validasi sederhana agar tidak error saat variabel lupa diisi
+// Validasi sederhana
 if (!firebaseConfig.apiKey) {
   console.error("Firebase API Key is missing. Check your .env.local file.");
 }
@@ -19,5 +19,8 @@ if (!firebaseConfig.apiKey) {
 // Inisialisasi Firebase (Singleton)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
+
 export const storage = getStorage(app);
