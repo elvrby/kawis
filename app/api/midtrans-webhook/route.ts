@@ -5,19 +5,26 @@ import { collection, query, where, getDocs, updateDoc, doc, deleteField } from "
 export async function POST(req: Request) {
   try {
     const notification = await req.json();
-    console.log("Notifikasi Masuk:", notification);
-
+    
     const status = notification.transaction_status;
-    const fullOrderId = notification.order_id; // Contoh: "INV-PAY123-1714567"
+    const fullOrderId = notification.order_id; // "INV-xcfsWKN9x4fC-1777618271258"
 
-    // Ambil ID aslinya (ambil bagian tengah antara INV- dan -Timestamp)
-    // Jika formatnya INV-KODE-TIME, maka kita split berdasarkan "-"
+    // LOGIKA PEMOTONGAN: 
+    // Split berdasarkan tanda "-" 
+    // parts[0] = "INV"
+    // parts[1] = "xcfsWKN9x4fC" (KODE YANG KITA CARI)
+    // parts[2] = "1777618271258"
     const parts = fullOrderId.split("-");
-    const originalPaymentCode = parts[1]; 
+    const paymentCodeToSearch = parts[1]; 
+
+    console.log("Mencari pendaftar dengan kode:", paymentCodeToSearch);
 
     if (status === "settlement" || status === "capture") {
-      // Cari dokumen yang memiliki paymentCode tersebut
-      const q = query(collection(db, "pendaftar"), where("paymentCode", "==", originalPaymentCode));
+      const q = query(
+        collection(db, "pendaftar"), 
+        where("paymentCode", "==", paymentCodeToSearch)
+      );
+      
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
@@ -27,21 +34,21 @@ export async function POST(req: Request) {
         await updateDoc(userRef, {
           status: "Siswa",
           tagihan: "Lunas",
-          paymentMethod: notification.payment_type, // Simpan metode spesifik (misal: gopay/qris)
-          paymentCode: deleteField(), // Hapus kode agar tidak bisa dipakai bayar lagi
+          paymentMethod: notification.payment_type, // akan terisi "qris"
+          // paymentCode: deleteField(), // Aktifkan jika ingin hapus kode setelah lunas
           updatedAt: new Date().toISOString(),
         });
 
-        console.log(`Berhasil Update: ${originalPaymentCode}`);
-        return NextResponse.json({ message: "OK" });
+        console.log("✅ Berhasil update database untuk:", paymentCodeToSearch);
+        return NextResponse.json({ message: "Success updated" });
       } else {
-        console.error("Data tidak ditemukan untuk kode:", originalPaymentCode);
+        console.error("❌ Data TIDAK ditemukan di Firestore untuk kode:", paymentCodeToSearch);
       }
     }
 
-    return NextResponse.json({ message: "Notification handled" });
+    return NextResponse.json({ message: "Notification received but no action taken" });
   } catch (error: any) {
-    console.error("Webhook Error:", error.message);
+    console.error("Midtrans Webhook Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
