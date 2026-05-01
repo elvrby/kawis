@@ -11,15 +11,23 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "firebase": "^12.12.1",
+    "lucide-react": "^1.14.0",
+    "midtrans": "^1.0.10",
+    "midtrans-client": "^1.4.3",
+    "nanoid": "^5.1.11",
     "next": "16.2.4",
+    "nodemailer": "^8.0.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.74.0",
+    "resend": "^6.12.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/midtrans-client": "^1.4.0",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
