@@ -209,7 +209,7 @@ export default function DaftarPage() {
                 <label className="text-xs font-extrabold uppercase text-blue-600 tracking-widest">Pilih Jurusan</label>
                 <select {...register("jurusan")} className="bg-transparent border-none text-2xl font-bold focus:ring-0 outline-none cursor-pointer appearance-none">
                   <option value="">Pilih Jurusan...</option>
-                  <option value="IPA">MIPA (Sains)</option>
+                  <option value="IPA">Teknik Komputer Jaringan (TKJ)</option>
                   <option value="IPS">IPS (Sosial)</option>
                   <option value="BAHASA">Bahasa & Budaya</option>
                 </select>
